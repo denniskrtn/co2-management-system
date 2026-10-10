@@ -1,24 +1,28 @@
-import { useState } from 'react'
-import { Button, Container, Typography } from '@mui/material'
+import { Navigate, Route, Routes } from 'react-router'
+import { RequireAuth } from './auth/RequireAuth'
+import { LoginPage } from './pages/LoginPage'
+import { PlaceholderPage } from './pages/PlaceholderPage'
 
 function App() {
-  const [status, setStatus] = useState('')
-
-  const checkBackend = async () => {
-    const response = await fetch('/api/me')
-    setStatus(`Antwort vom Backend: ${response.status}`)
-  }
-
   return (
-    <Container sx={{ mt: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        CO2-Management-System
-      </Typography>
-      <Button variant="contained" onClick={checkBackend}>
-        Backend prüfen
-      </Button>
-      <Typography sx={{ mt: 2 }}>{status}</Typography>
-    </Container>
+    <Routes>
+      <Route path="/anmeldung" element={<LoginPage />} />
+
+      <Route element={<RequireAuth roles={['SUSTAINABILITY_OFFICER', 'MANAGER', 'USER']} />}>
+        <Route path="/auswertung" element={<PlaceholderPage title="Auswertung" />} />
+      </Route>
+
+      <Route element={<RequireAuth roles={['SUSTAINABILITY_OFFICER']} />}>
+        <Route path="/erfassung" element={<PlaceholderPage title="Erfassung" />} />
+      </Route>
+
+      <Route element={<RequireAuth roles={['ADMIN']} />}>
+        <Route path="/standortverwaltung" element={<PlaceholderPage title="Standortverwaltung" />} />
+        <Route path="/benutzerverwaltung" element={<PlaceholderPage title="Benutzerverwaltung" />} />
+      </Route>
+
+      <Route path="*" element={<Navigate to="/anmeldung" replace />} />
+    </Routes>
   )
 }
 
