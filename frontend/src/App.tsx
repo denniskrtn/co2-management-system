@@ -6,6 +6,7 @@ import { LoginPage } from './pages/LoginPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
 import { SitesPage } from './pages/SitesPage'
 import { UsersPage } from './pages/UsersPage'
+import { EntryPage } from './pages/EntryPage'
 
 function App() {
   return (
@@ -19,7 +20,7 @@ function App() {
           </Route>
 
           <Route element={<RequireAuth roles={['SUSTAINABILITY_OFFICER']} />}>
-            <Route path="/erfassung" element={<PlaceholderPage title="Erfassung" />} />
+            <Route path="/erfassung" element={<EntryPage />} />
           </Route>
 
           <Route element={<RequireAuth roles={['ADMIN']} />}>
