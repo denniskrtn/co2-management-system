@@ -5,7 +5,8 @@ import type { LoginResponse, UserInfo } from './types'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserInfo | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(() => getToken() !== null)
+
 
   const logout = useCallback(() => {
     setToken(null)
@@ -16,7 +17,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUnauthorizedHandler(logout)
 
     if (!getToken()) {
-      setLoading(false)
       return
     }
     apiFetch<UserInfo>('/api/me')
