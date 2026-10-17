@@ -5,6 +5,7 @@ import { AppLayout } from './components/AppLayout'
 import { LoginPage } from './pages/LoginPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
 import { SitesPage } from './pages/SitesPage'
+import { UsersPage } from './pages/UsersPage'
 
 function App() {
   return (
@@ -23,7 +24,7 @@ function App() {
 
           <Route element={<RequireAuth roles={['ADMIN']} />}>
             <Route path="/standortverwaltung" element={<SitesPage />} />
-            <Route path="/benutzerverwaltung" element={<PlaceholderPage title="Benutzerverwaltung" />} />
+            <Route path="/benutzerverwaltung" element={<UsersPage />} />
           </Route>
         </Route>
       </Route>
