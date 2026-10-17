@@ -7,6 +7,6 @@ import java.math.BigDecimal;
 public class EmissionCalculator {
 
     public BigDecimal calculate (BigDecimal quantity, BigDecimal factorValue){
-        return BigDecimal.ZERO;
+        return quantity.multiply(factorValue);
     }
 }
