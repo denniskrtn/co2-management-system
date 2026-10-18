@@ -200,8 +200,9 @@ export function ReportPage() {
           <Paper sx={{ p: 2 }}>
             <LineChart
               height={320}
+              margin={{ right: 24 }}
               xAxis={[{ scaleType: 'point', data: monthly.months.map(formatMonth) }]}
-              yAxis={[{ valueFormatter: (value: number) => axisNumber.format(value) }]}
+              yAxis={[{ width: 'auto', valueFormatter: (value: number) => axisNumber.format(value) }]}
               series={monthly.series.map((series) => ({
                 id: `site-${series.siteId}`,
                 label: series.siteName,
