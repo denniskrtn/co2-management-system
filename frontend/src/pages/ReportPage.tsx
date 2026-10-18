@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+
 import {
   Alert,
   Button,
@@ -15,7 +16,7 @@ import {
 import { DatePicker } from '@mui/x-date-pickers/DatePicker'
 import { LineChart } from '@mui/x-charts/LineChart'
 import dayjs, { type Dayjs } from 'dayjs'
-import { fetchMonthly, fetchTotals, type MonthlyReport, type TotalsReport } from '../api/reports'
+import { fetchMonthly, fetchTotals, fetchTotalsPdf, type MonthlyReport, type TotalsReport } from '../api/reports'
 import { useAuth } from '../auth/useAuth'
 import { colorForSite } from '../utils/chartColors'
 import { formatKg } from '../utils/numbers'
@@ -56,6 +57,7 @@ export function ReportPage() {
   const [report, setReport] = useState<TotalsReport | null>(null)
   const [monthly, setMonthly] = useState<MonthlyReport | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [pdfError, setPdfError] = useState<string | null>(null)
 
   useEffect(() => {
     let active = true
@@ -98,6 +100,24 @@ export function ReportPage() {
       setMonthly(monthlyData)
     } catch {
       setLoadError('Die Auswertung konnte nicht geladen werden.')
+    }
+  }
+
+  async function handlePdfExport() {
+    if (report === null) {
+      return
+    }
+    setPdfError(null)
+    try {
+      const blob = await fetchTotalsPdf(report.from, report.to)
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `emissionsbericht_${report.from}_${report.to}.pdf`
+      link.click()
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
+    } catch {
+      setPdfError('Der Bericht konnte nicht erstellt werden.')
     }
   }
 
@@ -193,6 +213,15 @@ export function ReportPage() {
               grid={{ horizontal: true }}
             />
           </Paper>
+        </Stack>
+      )}
+
+      {report && (
+        <Stack spacing={1} sx={{ alignItems: 'flex-start' }}>
+          {pdfError && <Alert severity="error">{pdfError}</Alert>}
+          <Button variant="outlined" onClick={handlePdfExport}>
+            PDF exportieren
+          </Button>
         </Stack>
       )}
     </Stack>

@@ -1,4 +1,4 @@
-import { apiFetch } from './client'
+import { apiFetch, apiFetchBlob } from './client'
 
 export type SiteTotal = {
   siteId: number
@@ -35,4 +35,9 @@ export function fetchMonthly(from: string, to: string): Promise<MonthlyReport> {
 export function fetchTotals(from: string, to: string): Promise<TotalsReport> {
   const params = new URLSearchParams({ from, to })
   return apiFetch<TotalsReport>(`/api/reports/totals?${params}`)
+}
+
+export function fetchTotalsPdf(from: string, to: string): Promise<Blob> {
+  const params = new URLSearchParams({ from, to })
+  return apiFetchBlob(`/api/reports/totals/pdf?${params}`)
 }
