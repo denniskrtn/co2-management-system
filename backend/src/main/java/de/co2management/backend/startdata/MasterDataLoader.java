@@ -8,9 +8,11 @@ import de.co2management.backend.emission.Scope;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.core.annotation.Order;
 
 import java.math.BigDecimal;
 
+@Order(1)
 @Component
 public class MasterDataLoader implements CommandLineRunner {
 

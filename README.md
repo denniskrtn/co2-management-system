@@ -77,6 +77,14 @@ On Windows use `.\mvnw.cmd test`. The integration tests start their own PostgreS
 
 The JWT signing key is read from the environment variable `JWT_SECRET`. If it is not set, a development key from `application.properties` is used. Never use the development key outside local development.
 
+## Demo data
+
+On first start the backend creates the emission sources with example factors for 2025 and 2026, three sites, four demo accounts and example entries from October 2025 to September 2026 (Werk West from July 2026). The emission factors are example values, not official factors.
+
+To reset all data to this initial state, stop the backend and run in the `backend` folder:
+
+    docker compose down -v
+
 ## License
 
 MIT
