@@ -32,6 +32,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.jayway.jsonpath.JsonPath;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.within;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.everyItem;
+
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
@@ -209,9 +216,69 @@ class ReportIntegrationTest {
     }
 
     @Test
-    @DisplayName("T-08-04: Administration erhält keine Summen")
-    void adminCannotSeeTotals() throws Exception {
+    @DisplayName("T-08-04: Administration erhält weder Summen noch Monatssummen")
+    void adminCannotSeeReports() throws Exception {
         mockMvc.perform(get("/api/reports/totals").with(as(Role.ADMIN, null)))
                 .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/reports/monthly").with(as(Role.ADMIN, null)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("T-10-02: Summe der Monatswerte entspricht der Gesamtsumme")
+    void monthlyValuesAddUpToTotal() throws Exception {
+        entry(nord, LocalDate.of(2026, 1, 10), "0.123");
+        entry(nord, LocalDate.of(2026, 3, 20), "1.5");
+        entry(nord, LocalDate.of(2026, 3, 21), "2.25");
+
+        String monthly = mockMvc.perform(get("/api/reports/monthly").with(as(Role.SUSTAINABILITY_OFFICER, null))
+                        .param("from", "2026-01-01").param("to", "2026-06-30").param("siteId", nord.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.months.length()").value(6))
+                .andReturn().getResponse().getContentAsString();
+        String totals = mockMvc.perform(get("/api/reports/totals").with(as(Role.SUSTAINABILITY_OFFICER, null))
+                        .param("from", "2026-01-01").param("to", "2026-06-30").param("siteId", nord.getId().toString()))
+                .andReturn().getResponse().getContentAsString();
+
+        List<Number> monthValues = JsonPath.read(monthly, "$.series[0].totalsKg");
+        double monthSum = monthValues.stream().mapToDouble(Number::doubleValue).sum();
+        double total = JsonPath.<Number>read(totals, "$.sites[0].totalKg").doubleValue();
+        assertThat(monthSum).isCloseTo(total, within(1e-9));
+    }
+
+    @Test
+    @DisplayName("T-10-03: Eine Reihe je Standort, West mit Nullen")
+    void officerGetsSeriesPerSite() throws Exception {
+        entry(nord, LocalDate.of(2026, 1, 15), "380");
+
+        mockMvc.perform(get("/api/reports/monthly").with(as(Role.SUSTAINABILITY_OFFICER, null))
+                        .param("from", "2026-01-01").param("to", "2026-06-30"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.series[*].siteName").value(hasItems("Test Nord", "Test Süd", "Test West")));
+
+        mockMvc.perform(get("/api/reports/monthly").with(as(Role.SUSTAINABILITY_OFFICER, null))
+                        .param("from", "2026-01-01").param("to", "2026-06-30").param("siteId", west.getId().toString()))
+                .andExpect(jsonPath("$.series[0].roundedKg.length()").value(6))
+                .andExpect(jsonPath("$.series[0].roundedKg").value(everyItem(equalTo(0.0))));
+    }
+
+    @Test
+    @DisplayName("T-10-04: Benutzer erhält keine Monatssummen")
+    void userCannotSeeMonthlySums() throws Exception {
+        mockMvc.perform(get("/api/reports/monthly").with(as(Role.USER, sued)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("T-08-02: Führungskraft in Nord erhält nur die Monatssummen von Nord")
+    void managerSeesOnlyOwnSiteMonthly() throws Exception {
+        entry(nord, LocalDate.of(2026, 1, 15), "380");
+        entry(sued, LocalDate.of(2026, 1, 15), "40");
+
+        mockMvc.perform(get("/api/reports/monthly").with(as(Role.MANAGER, nord))
+                        .param("from", "2026-01-01").param("to", "2026-06-30"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.series.length()").value(1))
+                .andExpect(jsonPath("$.series[0].siteName").value("Test Nord"));
     }
 }

@@ -1,6 +1,9 @@
 package de.co2management.backend.report;
 
 import de.co2management.backend.auth.AuthenticatedUser;
+import de.co2management.backend.site.SiteInfo;
+import de.co2management.backend.site.SiteRepository;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -9,6 +12,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
 
 @Service
@@ -16,10 +20,12 @@ import java.util.List;
 public class ReportService {
 
     private final ReportRepository reportRepository;
+    private final SiteRepository siteRepository;
     private final Clock clock;
 
-    public ReportService(ReportRepository reportRepository, Clock clock) {
+    public ReportService(ReportRepository reportRepository, SiteRepository siteRepository, Clock clock) {
         this.reportRepository = reportRepository;
+        this.siteRepository = siteRepository;
         this.clock = clock;
     }
 
@@ -31,6 +37,23 @@ public class ReportService {
                 ? reportRepository.totalsForAllSites(range.from(), range.to())
                 : reportRepository.totalsForSite(siteId, range.from(), range.to());
         return new TotalsReport(range.from(), range.to(), totals);
+    }
+
+    @PreAuthorize("hasAnyRole('SUSTAINABILITY_OFFICER', 'MANAGER')")
+    @Transactional(readOnly = true)
+    public MonthlyReport monthly(AuthenticatedUser user, LocalDate from, LocalDate to, Long requestedSiteId) {
+        DateRange range = resolveRange(from, to);
+        Long siteId = resolveSiteScope(user, requestedSiteId);
+        List<SiteInfo> sites = siteId == null
+                ? siteRepository.findAll(Sort.by("name")).stream().map(SiteInfo::from).toList()
+                : siteRepository.findById(siteId).map(SiteInfo::from).stream().toList();
+        List<MonthlySum> sums = siteId == null
+                ? reportRepository.monthlySumsForAllSites(range.from(), range.to())
+                : reportRepository.monthlySumsForSite(siteId, range.from(), range.to());
+        List<YearMonth> months = MonthlySeriesBuilder.monthsBetween(range);
+        return new MonthlyReport(range.from(), range.to(),
+                months.stream().map(YearMonth::toString).toList(),
+                MonthlySeriesBuilder.build(months, sites, sums));
     }
 
     DateRange resolveRange(LocalDate from, LocalDate to) {

@@ -28,4 +28,12 @@ public class ReportController {
                                @RequestParam(required = false) Long siteId) {
         return reportService.totals(AuthenticatedUser.from(jwt), from, to, siteId);
     }
+
+    @GetMapping("/monthly")
+    public MonthlyReport monthly(@AuthenticationPrincipal Jwt jwt,
+                                 @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+                                 @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+                                 @RequestParam(required = false) Long siteId) {
+        return reportService.monthly(AuthenticatedUser.from(jwt), from, to, siteId);
+    }
 }

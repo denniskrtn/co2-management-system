@@ -29,4 +29,25 @@ public interface ReportRepository extends Repository<EmissionEntry, Long> {
     List<SiteTotal> totalsForSite(@Param("siteId") Long siteId,
                                   @Param("from") LocalDate from,
                                   @Param("to") LocalDate to);
+
+    @Query("""
+            select new de.co2management.backend.report.MonthlySum(
+                e.site.id, year(e.entryDate), month(e.entryDate), sum(e.co2eKg))
+            from EmissionEntry e
+            where e.entryDate between :from and :to
+            group by e.site.id, year(e.entryDate), month(e.entryDate)
+            """)
+    List<MonthlySum> monthlySumsForAllSites(@Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    @Query("""
+            select new de.co2management.backend.report.MonthlySum(
+                e.site.id, year(e.entryDate), month(e.entryDate), sum(e.co2eKg))
+            from EmissionEntry e
+            where e.site.id = :siteId and e.entryDate between :from and :to
+            group by e.site.id, year(e.entryDate), month(e.entryDate)
+            """)
+    List<MonthlySum> monthlySumsForSite(@Param("siteId") Long siteId,
+                                        @Param("from") LocalDate from,
+                                        @Param("to") LocalDate to);
+
 }
