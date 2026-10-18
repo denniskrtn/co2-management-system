@@ -128,7 +128,8 @@ class ReportIntegrationTest {
 
         mockMvc.perform(get("/api/reports/totals").with(as(Role.SUSTAINABILITY_OFFICER, null))
                         .param("from", "2026-01-01").param("to", "2026-12-31").param("siteId", nord.getId().toString()))
-                .andExpect(jsonPath("$.sites[0].totalKg").value(0.012));
+                .andExpect(jsonPath("$.sites[0].totalKg").value(0.012))
+                .andExpect(jsonPath("$.sites[0].roundedKg").value(0.01));
     }
 
     @Test
