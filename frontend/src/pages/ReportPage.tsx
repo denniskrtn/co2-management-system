@@ -13,11 +13,15 @@ import {
   Typography,
 } from '@mui/material'
 import { DatePicker } from '@mui/x-date-pickers/DatePicker'
+import { LineChart } from '@mui/x-charts/LineChart'
 import dayjs, { type Dayjs } from 'dayjs'
-import { fetchTotals, type TotalsReport } from '../api/reports'
+import { fetchMonthly, fetchTotals, type MonthlyReport, type TotalsReport } from '../api/reports'
+import { useAuth } from '../auth/useAuth'
+import { colorForSite } from '../utils/chartColors'
 import { formatKg } from '../utils/numbers'
 
 const ISO_DATE = 'YYYY-MM-DD'
+const axisNumber = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 0 })
 
 type FieldErrors = {
   from?: string
@@ -38,18 +42,34 @@ function validateRange(from: Dayjs | null, to: Dayjs | null): FieldErrors {
   return errors
 }
 
+function formatMonth(month: string): string {
+  return `${month.slice(5, 7)}/${month.slice(0, 4)}`
+}
+
 export function ReportPage() {
+  const { user } = useAuth()
+  const showChart = user?.role === 'SUSTAINABILITY_OFFICER' || user?.role === 'MANAGER'
+
   const [from, setFrom] = useState<Dayjs | null>(() => dayjs().startOf('year'))
   const [to, setTo] = useState<Dayjs | null>(() => dayjs().endOf('year'))
   const [errors, setErrors] = useState<FieldErrors>({})
   const [report, setReport] = useState<TotalsReport | null>(null)
+  const [monthly, setMonthly] = useState<MonthlyReport | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
 
   useEffect(() => {
     let active = true
-    fetchTotals(dayjs().startOf('year').format(ISO_DATE), dayjs().endOf('year').format(ISO_DATE))
-      .then((data) => {
-        if (active) setReport(data)
+    const fromIso = dayjs().startOf('year').format(ISO_DATE)
+    const toIso = dayjs().endOf('year').format(ISO_DATE)
+    Promise.all([
+      fetchTotals(fromIso, toIso),
+      showChart ? fetchMonthly(fromIso, toIso) : Promise.resolve(null),
+    ])
+      .then(([totals, monthlyData]) => {
+        if (active) {
+          setReport(totals)
+          setMonthly(monthlyData)
+        }
       })
       .catch(() => {
         if (active) setLoadError('Die Auswertung konnte nicht geladen werden.')
@@ -57,7 +77,7 @@ export function ReportPage() {
     return () => {
       active = false
     }
-  }, [])
+  }, [showChart])
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
@@ -67,8 +87,15 @@ export function ReportPage() {
     if (Object.keys(validation).length > 0 || from === null || to === null) {
       return
     }
+    const fromIso = from.format(ISO_DATE)
+    const toIso = to.format(ISO_DATE)
     try {
-      setReport(await fetchTotals(from.format(ISO_DATE), to.format(ISO_DATE)))
+      const [totals, monthlyData] = await Promise.all([
+        fetchTotals(fromIso, toIso),
+        showChart ? fetchMonthly(fromIso, toIso) : Promise.resolve(null),
+      ])
+      setReport(totals)
+      setMonthly(monthlyData)
     } catch {
       setLoadError('Die Auswertung konnte nicht geladen werden.')
     }
@@ -139,6 +166,33 @@ export function ReportPage() {
               </TableBody>
             </Table>
           </TableContainer>
+        </Stack>
+      )}
+
+      {showChart && monthly && (
+        <Stack spacing={1}>
+          <Typography variant="h6" component="h2">
+            Emissionsentwicklung
+          </Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            Monatssummen in kg CO₂e
+          </Typography>
+          <Paper sx={{ p: 2 }}>
+            <LineChart
+              height={320}
+              xAxis={[{ scaleType: 'point', data: monthly.months.map(formatMonth) }]}
+              yAxis={[{ valueFormatter: (value: number) => axisNumber.format(value) }]}
+              series={monthly.series.map((series) => ({
+                id: `site-${series.siteId}`,
+                label: series.siteName,
+                data: series.roundedKg,
+                color: colorForSite(series.siteId),
+                valueFormatter: (value: number | null) =>
+                  value === null ? '' : `${formatKg(value)} kg CO₂e`,
+              }))}
+              grid={{ horizontal: true }}
+            />
+          </Paper>
         </Stack>
       )}
     </Stack>
