@@ -20,3 +20,7 @@ export function parseGermanDecimal(input: string): ParsedDecimal | null {
 export function formatDecimal(value: number, maximumFractionDigits = 3): string {
   return new Intl.NumberFormat('de-DE', { maximumFractionDigits }).format(value)
 }
+
+export function formatKg(value: number): string {
+  return new Intl.NumberFormat('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)
+}

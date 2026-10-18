@@ -3,10 +3,10 @@ import { RequireAuth } from './auth/RequireAuth'
 import { allRoles } from './auth/roles'
 import { AppLayout } from './components/AppLayout'
 import { LoginPage } from './pages/LoginPage'
-import { PlaceholderPage } from './pages/PlaceholderPage'
 import { SitesPage } from './pages/SitesPage'
 import { UsersPage } from './pages/UsersPage'
 import { EntryPage } from './pages/EntryPage'
+import { ReportPage } from './pages/ReportPage'
 
 function App() {
   return (
@@ -16,7 +16,7 @@ function App() {
       <Route element={<RequireAuth roles={allRoles} />}>
         <Route element={<AppLayout />}>
           <Route element={<RequireAuth roles={['SUSTAINABILITY_OFFICER', 'MANAGER', 'USER']} />}>
-            <Route path="/auswertung" element={<PlaceholderPage title="Auswertung" />} />
+            <Route path="/auswertung" element={<ReportPage />} />
           </Route>
 
           <Route element={<RequireAuth roles={['SUSTAINABILITY_OFFICER']} />}>
