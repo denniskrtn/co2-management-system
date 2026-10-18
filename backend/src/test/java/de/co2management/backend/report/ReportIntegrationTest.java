@@ -39,6 +39,10 @@ import static org.assertj.core.api.Assertions.within;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.everyItem;
 
+import org.springframework.http.MediaType;
+import java.nio.charset.StandardCharsets;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
@@ -216,11 +220,13 @@ class ReportIntegrationTest {
     }
 
     @Test
-    @DisplayName("T-08-04: Administration erhält weder Summen noch Monatssummen")
+    @DisplayName("T-08-04: Administration erhält weder Summen noch Monatssummen noch PDF")
     void adminCannotSeeReports() throws Exception {
         mockMvc.perform(get("/api/reports/totals").with(as(Role.ADMIN, null)))
                 .andExpect(status().isForbidden());
         mockMvc.perform(get("/api/reports/monthly").with(as(Role.ADMIN, null)))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/reports/totals/pdf").with(as(Role.ADMIN, null)))
                 .andExpect(status().isForbidden());
     }
 
@@ -280,5 +286,20 @@ class ReportIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.series.length()").value(1))
                 .andExpect(jsonPath("$.series[0].siteName").value("Test Nord"));
+    }
+
+    @Test
+    @DisplayName("T-09-01: PDF-Anforderung liefert ein nicht leeres PDF")
+    void pdfIsReturned() throws Exception {
+        entry(nord, LocalDate.of(2026, 3, 15), "380");
+
+        byte[] pdf = mockMvc.perform(get("/api/reports/totals/pdf").with(as(Role.SUSTAINABILITY_OFFICER, null))
+                        .param("from", "2026-01-01").param("to", "2026-12-31"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_PDF))
+                .andReturn().getResponse().getContentAsByteArray();
+
+        assertThat(pdf).isNotEmpty();
+        assertThat(new String(pdf, 0, 4, StandardCharsets.US_ASCII)).isEqualTo("%PDF");
     }
 }
